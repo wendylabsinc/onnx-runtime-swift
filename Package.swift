@@ -34,15 +34,27 @@ let package = Package(
         ),
         .target(
             name: "ONNXRuntime",
-            dependencies: ["ONNXRuntimeCPUBinary"]
+            dependencies: ["ONNXRuntimeCPUBinary"],
+            path: "Sources/ONNXRuntime",
+            swiftSettings: [
+                .define("ORT_CPU")
+            ]
         ),
         .target(
             name: "ONNXRuntimeCUDA",
-            dependencies: ["ONNXRuntimeCUDABinary"]
+            dependencies: ["ONNXRuntimeCUDABinary"],
+            path: "Sources/ONNXRuntime",
+            swiftSettings: [
+                .define("ORT_CUDA")
+            ]
         ),
         .target(
             name: "ONNXRuntimeROCm",
-            dependencies: ["ONNXRuntimeROCmBinary"]
+            dependencies: ["ONNXRuntimeROCmBinary"],
+            path: "Sources/ONNXRuntime",
+            swiftSettings: [
+                .define("ORT_ROCM")
+            ]
         ),
         .testTarget(
             name: "ONNXRuntimeTests",

@@ -6,7 +6,7 @@ on:
       ort_version:
         description: "ONNX Runtime git tag or branch"
         required: true
-        default: "main"
+        default: "v1.21.1"
       build_config:
         description: "CMake build configuration"
         required: true
@@ -68,28 +68,12 @@ jobs:
             --build_dir build-macos-arm64 \
             --cmake_extra_defines CMAKE_OSX_ARCHITECTURES=arm64 CMAKE_OSX_DEPLOYMENT_TARGET="${APPLE_DEPLOY_TARGET}"
 
-      - name: Build x86_64 macOS
-        run: |
-          cd onnxruntime
-          ./build.sh \
-            --config "${BUILD_CONFIG}" \
-            --parallel \
-            --skip_tests \
-            --use_xcode \
-            --build_dir build-macos-x86_64 \
-            --cmake_extra_defines CMAKE_OSX_ARCHITECTURES=x86_64 CMAKE_OSX_DEPLOYMENT_TARGET="${APPLE_DEPLOY_TARGET}"
-
       - name: Stage macOS artifacts
         run: |
           scripts/stage-ort-artifact.sh \
             onnxruntime \
             onnxruntime/build-macos-arm64 \
             build/ort/cpu/arm64-apple-macosx${APPLE_DEPLOY_TARGET}
-
-          scripts/stage-ort-artifact.sh \
-            onnxruntime \
-            onnxruntime/build-macos-x86_64 \
-            build/ort/cpu/x86_64-apple-macosx${APPLE_DEPLOY_TARGET}
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -127,20 +111,6 @@ jobs:
             --apple_deploy_target "${APPLE_DEPLOY_TARGET}" \
             --build_dir build-ios-device
 
-      - name: Build iOS simulator (x86_64)
-        run: |
-          cd onnxruntime
-          ./build.sh \
-            --config "${BUILD_CONFIG}" \
-            --parallel \
-            --skip_tests \
-            --use_xcode \
-            --ios \
-            --apple_sysroot iphonesimulator \
-            --osx_arch x86_64 \
-            --apple_deploy_target "${APPLE_DEPLOY_TARGET}" \
-            --build_dir build-ios-simulator-x86_64
-
       - name: Build iOS simulator (arm64)
         run: |
           cd onnxruntime
@@ -161,12 +131,6 @@ jobs:
             onnxruntime \
             onnxruntime/build-ios-device \
             build/ort/cpu/arm64-apple-ios${APPLE_DEPLOY_TARGET}
-
-          scripts/stage-ort-artifact.sh \
-            onnxruntime \
-            onnxruntime/build-ios-simulator-x86_64 \
-            build/ort/cpu/x86_64-apple-ios${APPLE_DEPLOY_TARGET}-simulator
-
           scripts/stage-ort-artifact.sh \
             onnxruntime \
             onnxruntime/build-ios-simulator-arm64 \

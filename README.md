@@ -30,9 +30,25 @@ A GitHub Actions workflow builds ONNX Runtime for each target and assembles arti
 - Workflow: `.github/workflows/onnxruntime-artifacts.yml`
 - Trigger manually with `workflow_dispatch`
 
+## Usage
+
+```swift
+import ONNXRuntime
+
+let env = try ORTEnvironment()
+let options = try ORTSessionOptions()
+let session = try ORTSession(environment: env, modelPath: "model.onnx", options: options)
+
+let input = try ORTTensor<Float>([0, 1, 2, 3], shape: [2, 2])
+let outputs = try session.run(inputs: ["input": input])
+let output = outputs["output"]!
+let values: [Float] = try output.tensorData()
+```
+
 ## Notes
 
 - The repository currently contains placeholder artifact files. The CI workflow builds real artifacts and
   stages them into the bundles.
+- macOS and iOS artifacts are arm64-only.
 - For AMD GPUs, ONNX Runtime uses the MIGraphX EP (legacy ROCm EP was removed). The ROCm bundle assumes
   a MIGraphX-enabled build.

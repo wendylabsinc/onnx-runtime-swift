@@ -5,12 +5,6 @@
       "type": "staticLibrary",
       "variants": [
         {
-          "path": "x86_64-apple-macosx26.0/libonnxruntime.a",
-          "supportedTriples": ["x86_64-apple-macosx26.0"],
-          "headers": "x86_64-apple-macosx26.0/include",
-          "moduleMapPath": "x86_64-apple-macosx26.0/module.modulemap"
-        },
-        {
           "path": "arm64-apple-macosx26.0/libonnxruntime.a",
           "supportedTriples": ["arm64-apple-macosx26.0"],
           "headers": "arm64-apple-macosx26.0/include",
@@ -21,12 +15,6 @@
           "supportedTriples": ["arm64-apple-ios26.0"],
           "headers": "arm64-apple-ios26.0/include",
           "moduleMapPath": "arm64-apple-ios26.0/module.modulemap"
-        },
-        {
-          "path": "x86_64-apple-ios26.0-simulator/libonnxruntime.a",
-          "supportedTriples": ["x86_64-apple-ios26.0-simulator"],
-          "headers": "x86_64-apple-ios26.0-simulator/include",
-          "moduleMapPath": "x86_64-apple-ios26.0-simulator/module.modulemap"
         },
         {
           "path": "arm64-apple-ios26.0-simulator/libonnxruntime.a",

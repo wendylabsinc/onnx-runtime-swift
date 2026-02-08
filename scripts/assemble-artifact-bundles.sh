@@ -63,7 +63,7 @@ copy_variant() {
 }
 
 copy_variant "cpu" "ONNXRuntimeCPUBinary" \
-  "arm64-apple-macosx26.0 x86_64-apple-macosx26.0 arm64-apple-ios26.0 x86_64-apple-ios26.0-simulator arm64-apple-ios26.0-simulator x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-unknown-windows-msvc aarch64-unknown-windows-msvc aarch64-unknown-linux-android28"
+  "arm64-apple-macosx26.0 arm64-apple-ios26.0 arm64-apple-ios26.0-simulator x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-unknown-windows-msvc aarch64-unknown-windows-msvc aarch64-unknown-linux-android28"
 
 copy_variant "cuda" "ONNXRuntimeCUDABinary" \
   "x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu"
