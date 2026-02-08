@@ -549,6 +549,35 @@ public final class ORTTensor<Element: ORTTensorElement>: ORTValue {
         self.storage = storage
         super.init(handle: value)
     }
+
+    public convenience init(_ span: Span<Element>, shape: [Int64]) throws {
+        let expectedCount = shape.reduce(1, *)
+        guard expectedCount == span.count else {
+            throw ORTError.invalidArgument("Data count (\(span.count)) does not match shape (\(shape))")
+        }
+
+        let array: [Element] = span.withUnsafeBufferPointer { buffer in
+            Array(buffer)
+        }
+        try self.init(array, shape: shape)
+    }
+
+    @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, *)
+    public convenience init<let count: Int>(_ inline: InlineArray<count, Element>, shape: [Int64]) throws {
+        let expectedCount = shape.reduce(1, *)
+        guard expectedCount == inline.count else {
+            throw ORTError.invalidArgument("Data count (\(inline.count)) does not match shape (\(shape))")
+        }
+
+        var array: [Element] = []
+        array.reserveCapacity(inline.count)
+        var index = 0
+        while index < inline.count {
+            array.append(inline[index])
+            index += 1
+        }
+        try self.init(array, shape: shape)
+    }
 }
 
 public protocol ORTTensorElement {

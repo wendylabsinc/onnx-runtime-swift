@@ -45,6 +45,29 @@ let output = outputs["output"]!
 let values: [Float] = try output.tensorData()
 ```
 
+`ORTTensor` also accepts `Span<Element>` and `InlineArray<count, Element>` (Swift 6.2) via convenience initializers.
+These initializers copy data into the tensor's internal buffer for safety.
+
+## Artifact Sources
+
+By default, the package uses the local artifact bundles under `Artifacts/`.
+For remote development, you can point `Package.swift` at zipped artifact bundles
+by setting environment variables before resolving/building:
+
+- `ORT_CPU_URL` / `ORT_CPU_CHECKSUM`
+- `ORT_CUDA_URL` / `ORT_CUDA_CHECKSUM`
+- `ORT_ROCM_URL` / `ORT_ROCM_CHECKSUM`
+
+`ORT_*_URL` should point to a `.artifactbundle.zip`, and the checksum can be
+computed with `swift package compute-checksum <zip>`.
+
+## Examples
+
+```
+cd Examples/BasicInference
+swift run BasicInference --model /path/to/model.onnx
+```
+
 ## Notes
 
 - The repository currently contains placeholder artifact files. The CI workflow builds real artifacts and

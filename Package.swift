@@ -2,6 +2,27 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import Foundation
+
+let env = ProcessInfo.processInfo.environment
+
+func binaryTarget(
+    name: String,
+    localPath: String,
+    urlEnv: String,
+    checksumEnv: String
+) -> Target {
+    if
+        let url = env[urlEnv],
+        let checksum = env[checksumEnv],
+        !url.isEmpty,
+        !checksum.isEmpty
+    {
+        return .binaryTarget(name: name, url: url, checksum: checksum)
+    }
+
+    return .binaryTarget(name: name, path: localPath)
+}
 
 let package = Package(
     name: "ONNXRuntime",
@@ -20,17 +41,23 @@ let package = Package(
         ),
     ],
     targets: [
-        .binaryTarget(
+        binaryTarget(
             name: "ONNXRuntimeCPUBinary",
-            path: "Artifacts/ONNXRuntimeCPUBinary.artifactbundle"
+            localPath: "Artifacts/ONNXRuntimeCPUBinary.artifactbundle",
+            urlEnv: "ORT_CPU_URL",
+            checksumEnv: "ORT_CPU_CHECKSUM"
         ),
-        .binaryTarget(
+        binaryTarget(
             name: "ONNXRuntimeCUDABinary",
-            path: "Artifacts/ONNXRuntimeCUDABinary.artifactbundle"
+            localPath: "Artifacts/ONNXRuntimeCUDABinary.artifactbundle",
+            urlEnv: "ORT_CUDA_URL",
+            checksumEnv: "ORT_CUDA_CHECKSUM"
         ),
-        .binaryTarget(
+        binaryTarget(
             name: "ONNXRuntimeROCmBinary",
-            path: "Artifacts/ONNXRuntimeROCmBinary.artifactbundle"
+            localPath: "Artifacts/ONNXRuntimeROCmBinary.artifactbundle",
+            urlEnv: "ORT_ROCM_URL",
+            checksumEnv: "ORT_ROCM_CHECKSUM"
         ),
         .target(
             name: "ONNXRuntime",
