@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "artifacts": {
+    "ONNXRuntimeROCmBinary": {
+      "type": "staticLibrary",
+      "variants": [
+        {
+          "path": "x86_64-unknown-linux-gnu/libonnxruntime.a",
+          "supportedTriples": ["x86_64-unknown-linux-gnu"],
+          "headers": "x86_64-unknown-linux-gnu/include",
+          "moduleMapPath": "x86_64-unknown-linux-gnu/module.modulemap"
+        },
+        {
+          "path": "aarch64-unknown-linux-gnu/libonnxruntime.a",
+          "supportedTriples": ["aarch64-unknown-linux-gnu"],
+          "headers": "aarch64-unknown-linux-gnu/include",
+          "moduleMapPath": "aarch64-unknown-linux-gnu/module.modulemap"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,645 @@
+name: Build ONNX Runtime Artifact Bundles
+
+on:
+  workflow_dispatch:
+    inputs:
+      ort_version:
+        description: "ONNX Runtime git tag or branch"
+        required: true
+        default: "main"
+      build_config:
+        description: "CMake build configuration"
+        required: true
+        default: "Release"
+      apple_deploy_target:
+        description: "Apple deployment target (macOS/iOS)"
+        required: true
+        default: "26.0"
+      android_api:
+        description: "Android API level"
+        required: true
+        default: "28"
+      android_ndk_version:
+        description: "Android NDK version (r27d)"
+        required: true
+        default: "27.3.13750724"
+      linux_arm64_mode:
+        description: "Linux arm64 build mode (auto/native/emulated)"
+        required: true
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - native
+          - emulated
+
+env:
+  ORT_VERSION: ${{ inputs.ort_version }}
+  BUILD_CONFIG: ${{ inputs.build_config }}
+  APPLE_DEPLOY_TARGET: ${{ inputs.apple_deploy_target }}
+  ANDROID_API: ${{ inputs.android_api }}
+  ANDROID_NDK_VERSION: ${{ inputs.android_ndk_version }}
+
+jobs:
+  build-macos:
+    name: Build macOS CPU
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone ONNX Runtime
+        run: |
+          git clone --recursive --depth 1 --branch "${ORT_VERSION}" https://github.com/microsoft/onnxruntime.git
+
+      - name: Install Python deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r onnxruntime/requirements.txt
+
+      - name: Build arm64 macOS
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --use_xcode \
+            --build_dir build-macos-arm64 \
+            --cmake_extra_defines CMAKE_OSX_ARCHITECTURES=arm64 CMAKE_OSX_DEPLOYMENT_TARGET="${APPLE_DEPLOY_TARGET}"
+
+      - name: Build x86_64 macOS
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --use_xcode \
+            --build_dir build-macos-x86_64 \
+            --cmake_extra_defines CMAKE_OSX_ARCHITECTURES=x86_64 CMAKE_OSX_DEPLOYMENT_TARGET="${APPLE_DEPLOY_TARGET}"
+
+      - name: Stage macOS artifacts
+        run: |
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-macos-arm64 \
+            build/ort/cpu/arm64-apple-macosx${APPLE_DEPLOY_TARGET}
+
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-macos-x86_64 \
+            build/ort/cpu/x86_64-apple-macosx${APPLE_DEPLOY_TARGET}
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-macos
+          path: build/ort/cpu
+
+  build-ios:
+    name: Build iOS CPU
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone ONNX Runtime
+        run: |
+          git clone --recursive --depth 1 --branch "${ORT_VERSION}" https://github.com/microsoft/onnxruntime.git
+
+      - name: Install Python deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r onnxruntime/requirements.txt
+
+      - name: Build iOS device (arm64)
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --use_xcode \
+            --ios \
+            --apple_sysroot iphoneos \
+            --osx_arch arm64 \
+            --apple_deploy_target "${APPLE_DEPLOY_TARGET}" \
+            --build_dir build-ios-device
+
+      - name: Build iOS simulator (x86_64)
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --use_xcode \
+            --ios \
+            --apple_sysroot iphonesimulator \
+            --osx_arch x86_64 \
+            --apple_deploy_target "${APPLE_DEPLOY_TARGET}" \
+            --build_dir build-ios-simulator-x86_64
+
+      - name: Build iOS simulator (arm64)
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --use_xcode \
+            --ios \
+            --apple_sysroot iphonesimulator \
+            --osx_arch arm64 \
+            --apple_deploy_target "${APPLE_DEPLOY_TARGET}" \
+            --build_dir build-ios-simulator-arm64
+
+      - name: Stage iOS artifacts
+        run: |
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-ios-device \
+            build/ort/cpu/arm64-apple-ios${APPLE_DEPLOY_TARGET}
+
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-ios-simulator-x86_64 \
+            build/ort/cpu/x86_64-apple-ios${APPLE_DEPLOY_TARGET}-simulator
+
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-ios-simulator-arm64 \
+            build/ort/cpu/arm64-apple-ios${APPLE_DEPLOY_TARGET}-simulator
+
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-ios
+          path: build/ort/cpu
+
+  build-linux-cpu-x86_64:
+    name: Build Linux CPU (x86_64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone ONNX Runtime
+        run: |
+          git clone --recursive --depth 1 --branch "${ORT_VERSION}" https://github.com/microsoft/onnxruntime.git
+
+      - name: Install Python deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r onnxruntime/requirements.txt
+
+      - name: Build Linux CPU
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --build_dir build-linux-x86_64
+
+      - name: Stage Linux CPU artifacts
+        run: |
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-linux-x86_64 \
+            build/ort/cpu/x86_64-unknown-linux-gnu
+
+      - name: Upload Linux CPU artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-linux-cpu-x86_64
+          path: build/ort/cpu
+
+  build-linux-cpu-aarch64-native:
+    name: Build Linux CPU (aarch64 native)
+    if: ${{ inputs.linux_arm64_mode != 'emulated' }}
+    continue-on-error: ${{ inputs.linux_arm64_mode == 'auto' }}
+    runs-on: ubuntu-24.04-arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone ONNX Runtime
+        run: |
+          git clone --recursive --depth 1 --branch "${ORT_VERSION}" https://github.com/microsoft/onnxruntime.git
+
+      - name: Install Python deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r onnxruntime/requirements.txt
+
+      - name: Build Linux CPU
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --build_dir build-linux-aarch64
+
+      - name: Stage Linux CPU artifacts
+        run: |
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-linux-aarch64 \
+            build/ort/cpu/aarch64-unknown-linux-gnu
+
+      - name: Upload Linux CPU artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-linux-cpu-aarch64-native
+          path: build/ort/cpu
+
+  build-linux-cpu-aarch64-emulated:
+    name: Build Linux CPU (aarch64 emulated)
+    if: ${{ inputs.linux_arm64_mode != 'native' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Linux CPU (aarch64 emulated)
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: aarch64
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+          run: |
+            set -euo pipefail
+            cd /github/workspace
+            apt-get update
+            apt-get install -y build-essential cmake git python3 python3-pip
+            git clone --recursive --depth 1 --branch "${ORT_VERSION}" https://github.com/microsoft/onnxruntime.git
+            python3 -m pip install --upgrade pip
+            python3 -m pip install -r onnxruntime/requirements.txt
+            cd onnxruntime
+            ./build.sh \
+              --config "${BUILD_CONFIG}" \
+              --parallel \
+              --skip_tests \
+              --build_dir build-linux-aarch64-emulated
+            /github/workspace/scripts/stage-ort-artifact.sh \
+              /github/workspace/onnxruntime \
+              /github/workspace/onnxruntime/build-linux-aarch64-emulated \
+              /github/workspace/build/ort/cpu/aarch64-unknown-linux-gnu
+
+      - name: Upload Linux CPU artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-linux-cpu-aarch64-emulated
+          path: build/ort/cpu
+
+  build-linux-cuda-x86_64:
+    name: Build Linux CUDA (x86_64)
+    runs-on: [self-hosted, linux, cuda, x86_64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify CUDA environment
+        run: |
+          if [[ -z "${CUDA_HOME:-}" || -z "${CUDNN_HOME:-}" ]]; then
+            echo "CUDA_HOME and CUDNN_HOME must be set on the runner." >&2
+            exit 1
+          fi
+
+      - name: Clone ONNX Runtime
+        run: |
+          git clone --recursive --depth 1 --branch "${ORT_VERSION}" https://github.com/microsoft/onnxruntime.git
+
+      - name: Install Python deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r onnxruntime/requirements.txt
+
+      - name: Build Linux CUDA
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --use_cuda \
+            --cuda_home "${CUDA_HOME}" \
+            --cudnn_home "${CUDNN_HOME}" \
+            --build_dir build-linux-cuda-x86_64
+
+      - name: Stage Linux CUDA artifacts
+        run: |
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-linux-cuda-x86_64 \
+            build/ort/cuda/x86_64-unknown-linux-gnu
+
+      - name: Upload Linux CUDA artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-linux-cuda-x86_64
+          path: build/ort/cuda
+
+  build-linux-cuda-aarch64:
+    name: Build Linux CUDA (aarch64)
+    runs-on: [self-hosted, linux, cuda, arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify CUDA environment
+        run: |
+          if [[ -z "${CUDA_HOME:-}" || -z "${CUDNN_HOME:-}" ]]; then
+            echo "CUDA_HOME and CUDNN_HOME must be set on the runner." >&2
+            exit 1
+          fi
+
+      - name: Clone ONNX Runtime
+        run: |
+          git clone --recursive --depth 1 --branch "${ORT_VERSION}" https://github.com/microsoft/onnxruntime.git
+
+      - name: Install Python deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r onnxruntime/requirements.txt
+
+      - name: Build Linux CUDA
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --use_cuda \
+            --cuda_home "${CUDA_HOME}" \
+            --cudnn_home "${CUDNN_HOME}" \
+            --build_dir build-linux-cuda-aarch64
+
+      - name: Stage Linux CUDA artifacts
+        run: |
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-linux-cuda-aarch64 \
+            build/ort/cuda/aarch64-unknown-linux-gnu
+
+      - name: Upload Linux CUDA artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-linux-cuda-aarch64
+          path: build/ort/cuda
+
+  build-linux-rocm-x86_64:
+    name: Build Linux ROCm/MIGraphX (x86_64)
+    runs-on: [self-hosted, linux, rocm, x86_64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify MIGraphX environment
+        run: |
+          MIGRAPHX_HOME="${MIGRAPHX_HOME:-/opt/rocm}"
+          if [[ ! -d "${MIGRAPHX_HOME}" ]]; then
+            echo "MIGRAPHX_HOME is not set and /opt/rocm does not exist." >&2
+            exit 1
+          fi
+          echo "MIGRAPHX_HOME=${MIGRAPHX_HOME}" >> "$GITHUB_ENV"
+
+      - name: Clone ONNX Runtime
+        run: |
+          git clone --recursive --depth 1 --branch "${ORT_VERSION}" https://github.com/microsoft/onnxruntime.git
+
+      - name: Install Python deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r onnxruntime/requirements.txt
+
+      - name: Build Linux MIGraphX
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --use_migraphx \
+            --migraphx_home "${MIGRAPHX_HOME}" \
+            --build_dir build-linux-migraphx-x86_64
+
+      - name: Stage Linux ROCm artifacts
+        run: |
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-linux-migraphx-x86_64 \
+            build/ort/rocm/x86_64-unknown-linux-gnu
+
+      - name: Upload Linux ROCm artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-linux-rocm-x86_64
+          path: build/ort/rocm
+
+  build-linux-rocm-aarch64:
+    name: Build Linux ROCm/MIGraphX (aarch64)
+    runs-on: [self-hosted, linux, rocm, arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify MIGraphX environment
+        run: |
+          MIGRAPHX_HOME="${MIGRAPHX_HOME:-/opt/rocm}"
+          if [[ ! -d "${MIGRAPHX_HOME}" ]]; then
+            echo "MIGRAPHX_HOME is not set and /opt/rocm does not exist." >&2
+            exit 1
+          fi
+          echo "MIGRAPHX_HOME=${MIGRAPHX_HOME}" >> "$GITHUB_ENV"
+
+      - name: Clone ONNX Runtime
+        run: |
+          git clone --recursive --depth 1 --branch "${ORT_VERSION}" https://github.com/microsoft/onnxruntime.git
+
+      - name: Install Python deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r onnxruntime/requirements.txt
+
+      - name: Build Linux MIGraphX
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --use_migraphx \
+            --migraphx_home "${MIGRAPHX_HOME}" \
+            --build_dir build-linux-migraphx-aarch64
+
+      - name: Stage Linux ROCm artifacts
+        run: |
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-linux-migraphx-aarch64 \
+            build/ort/rocm/aarch64-unknown-linux-gnu
+
+      - name: Upload Linux ROCm artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-linux-rocm-aarch64
+          path: build/ort/rocm
+
+  build-windows:
+    name: Build Windows CPU
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone ONNX Runtime
+        shell: pwsh
+        run: |
+          git clone --recursive --depth 1 --branch "$env:ORT_VERSION" https://github.com/microsoft/onnxruntime.git
+
+      - name: Install Python deps
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r onnxruntime/requirements.txt
+
+      - name: Build x64
+        shell: pwsh
+        run: |
+          cd onnxruntime
+          .\build.bat --config $env:BUILD_CONFIG --skip_tests --build_dir build-win-x64
+
+      - name: Build ARM64
+        shell: pwsh
+        run: |
+          cd onnxruntime
+          .\build.bat --config $env:BUILD_CONFIG --skip_tests --arm64 --build_dir build-win-arm64
+
+      - name: Stage Windows artifacts
+        shell: pwsh
+        run: |
+          $ortRoot = Join-Path $env:GITHUB_WORKSPACE "onnxruntime"
+
+          $destX64 = Join-Path $env:GITHUB_WORKSPACE "build/ort/cpu/x86_64-unknown-windows-msvc"
+          $libX64 = Get-ChildItem -Recurse -Filter onnxruntime.lib -Path (Join-Path $ortRoot "build-win-x64") | Select-Object -First 1
+          if (-not $libX64) { throw "onnxruntime.lib not found for x64" }
+          New-Item -ItemType Directory -Force -Path $destX64 | Out-Null
+          Copy-Item -Force $libX64.FullName $destX64
+          Remove-Item -Recurse -Force (Join-Path $destX64 "include") -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path (Join-Path $destX64 "include") | Out-Null
+          Copy-Item -Recurse -Force (Join-Path $ortRoot "include/onnxruntime") (Join-Path $destX64 "include/")
+
+          $destArm64 = Join-Path $env:GITHUB_WORKSPACE "build/ort/cpu/aarch64-unknown-windows-msvc"
+          $libArm64 = Get-ChildItem -Recurse -Filter onnxruntime.lib -Path (Join-Path $ortRoot "build-win-arm64") | Select-Object -First 1
+          if (-not $libArm64) { throw "onnxruntime.lib not found for ARM64" }
+          New-Item -ItemType Directory -Force -Path $destArm64 | Out-Null
+          Copy-Item -Force $libArm64.FullName $destArm64
+          Remove-Item -Recurse -Force (Join-Path $destArm64 "include") -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path (Join-Path $destArm64 "include") | Out-Null
+          Copy-Item -Recurse -Force (Join-Path $ortRoot "include/onnxruntime") (Join-Path $destArm64 "include/")
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-windows
+          path: build/ort/cpu
+
+  build-android:
+    name: Build Android CPU
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager \
+            "platforms;android-${ANDROID_API}" \
+            "ndk;${ANDROID_NDK_VERSION}" \
+            "cmake;3.22.1"
+
+      - name: Clone ONNX Runtime
+        run: |
+          git clone --recursive --depth 1 --branch "${ORT_VERSION}" https://github.com/microsoft/onnxruntime.git
+
+      - name: Install Python deps
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r onnxruntime/requirements.txt
+
+      - name: Build Android (arm64-v8a)
+        run: |
+          cd onnxruntime
+          ./build.sh \
+            --config "${BUILD_CONFIG}" \
+            --parallel \
+            --skip_tests \
+            --android \
+            --android_sdk_path "${ANDROID_SDK_ROOT}" \
+            --android_ndk_path "${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" \
+            --android_abi arm64-v8a \
+            --android_api "${ANDROID_API}" \
+            --build_dir build-android-arm64
+
+      - name: Stage Android artifacts
+        run: |
+          scripts/stage-ort-artifact.sh \
+            onnxruntime \
+            onnxruntime/build-android-arm64 \
+            build/ort/cpu/aarch64-unknown-linux-android${ANDROID_API}
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-android
+          path: build/ort/cpu
+
+  bundle:
+    name: Assemble Artifact Bundles
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs:
+      - build-macos
+      - build-ios
+      - build-linux-cpu-x86_64
+      - build-linux-cpu-aarch64-native
+      - build-linux-cpu-aarch64-emulated
+      - build-linux-cuda-x86_64
+      - build-linux-cuda-aarch64
+      - build-linux-rocm-x86_64
+      - build-linux-rocm-aarch64
+      - build-windows
+      - build-android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build outputs
+        uses: actions/download-artifact@v4
+        with:
+          path: build/ort
+          merge-multiple: true
+
+      - name: Assemble bundles
+        run: |
+          scripts/assemble-artifact-bundles.sh
+
+      - name: Upload artifact bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: onnxruntime-artifact-bundles
+          path: Artifacts
