@@ -6,51 +6,99 @@
       "variants": [
         {
           "path": "arm64-apple-macosx26.0/libonnxruntime.a",
-          "supportedTriples": ["arm64-apple-macosx26.0"],
-          "headers": "arm64-apple-macosx26.0/include",
-          "moduleMapPath": "arm64-apple-macosx26.0/module.modulemap"
+          "supportedTriples": [
+            "arm64-apple-macosx26.0"
+          ],
+          "staticLibraryMetadata": {
+            "headerPaths": [
+              "arm64-apple-macosx26.0/include"
+            ],
+            "moduleMapPath": "arm64-apple-macosx26.0/module.modulemap"
+          }
         },
         {
           "path": "arm64-apple-ios26.0/libonnxruntime.a",
-          "supportedTriples": ["arm64-apple-ios26.0"],
-          "headers": "arm64-apple-ios26.0/include",
-          "moduleMapPath": "arm64-apple-ios26.0/module.modulemap"
+          "supportedTriples": [
+            "arm64-apple-ios26.0"
+          ],
+          "staticLibraryMetadata": {
+            "headerPaths": [
+              "arm64-apple-ios26.0/include"
+            ],
+            "moduleMapPath": "arm64-apple-ios26.0/module.modulemap"
+          }
         },
         {
           "path": "arm64-apple-ios26.0-simulator/libonnxruntime.a",
-          "supportedTriples": ["arm64-apple-ios26.0-simulator"],
-          "headers": "arm64-apple-ios26.0-simulator/include",
-          "moduleMapPath": "arm64-apple-ios26.0-simulator/module.modulemap"
+          "supportedTriples": [
+            "arm64-apple-ios26.0-simulator"
+          ],
+          "staticLibraryMetadata": {
+            "headerPaths": [
+              "arm64-apple-ios26.0-simulator/include"
+            ],
+            "moduleMapPath": "arm64-apple-ios26.0-simulator/module.modulemap"
+          }
         },
         {
           "path": "x86_64-unknown-linux-gnu/libonnxruntime.a",
-          "supportedTriples": ["x86_64-unknown-linux-gnu"],
-          "headers": "x86_64-unknown-linux-gnu/include",
-          "moduleMapPath": "x86_64-unknown-linux-gnu/module.modulemap"
+          "supportedTriples": [
+            "x86_64-unknown-linux-gnu"
+          ],
+          "staticLibraryMetadata": {
+            "headerPaths": [
+              "x86_64-unknown-linux-gnu/include"
+            ],
+            "moduleMapPath": "x86_64-unknown-linux-gnu/module.modulemap"
+          }
         },
         {
           "path": "aarch64-unknown-linux-gnu/libonnxruntime.a",
-          "supportedTriples": ["aarch64-unknown-linux-gnu"],
-          "headers": "aarch64-unknown-linux-gnu/include",
-          "moduleMapPath": "aarch64-unknown-linux-gnu/module.modulemap"
+          "supportedTriples": [
+            "aarch64-unknown-linux-gnu"
+          ],
+          "staticLibraryMetadata": {
+            "headerPaths": [
+              "aarch64-unknown-linux-gnu/include"
+            ],
+            "moduleMapPath": "aarch64-unknown-linux-gnu/module.modulemap"
+          }
         },
         {
           "path": "x86_64-unknown-windows-msvc/onnxruntime.lib",
-          "supportedTriples": ["x86_64-unknown-windows-msvc"],
-          "headers": "x86_64-unknown-windows-msvc/include",
-          "moduleMapPath": "x86_64-unknown-windows-msvc/module.modulemap"
+          "supportedTriples": [
+            "x86_64-unknown-windows-msvc"
+          ],
+          "staticLibraryMetadata": {
+            "headerPaths": [
+              "x86_64-unknown-windows-msvc/include"
+            ],
+            "moduleMapPath": "x86_64-unknown-windows-msvc/module.modulemap"
+          }
         },
         {
           "path": "aarch64-unknown-windows-msvc/onnxruntime.lib",
-          "supportedTriples": ["aarch64-unknown-windows-msvc"],
-          "headers": "aarch64-unknown-windows-msvc/include",
-          "moduleMapPath": "aarch64-unknown-windows-msvc/module.modulemap"
+          "supportedTriples": [
+            "aarch64-unknown-windows-msvc"
+          ],
+          "staticLibraryMetadata": {
+            "headerPaths": [
+              "aarch64-unknown-windows-msvc/include"
+            ],
+            "moduleMapPath": "aarch64-unknown-windows-msvc/module.modulemap"
+          }
         },
         {
           "path": "aarch64-unknown-linux-android28/libonnxruntime.a",
-          "supportedTriples": ["aarch64-unknown-linux-android28"],
-          "headers": "aarch64-unknown-linux-android28/include",
-          "moduleMapPath": "aarch64-unknown-linux-android28/module.modulemap"
+          "supportedTriples": [
+            "aarch64-unknown-linux-android28"
+          ],
+          "staticLibraryMetadata": {
+            "headerPaths": [
+              "aarch64-unknown-linux-android28/include"
+            ],
+            "moduleMapPath": "aarch64-unknown-linux-android28/module.modulemap"
+          }
         }
       ]
     }

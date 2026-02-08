@@ -50,5 +50,6 @@ let values: [Float] = try output.tensorData()
 - The repository currently contains placeholder artifact files. The CI workflow builds real artifacts and
   stages them into the bundles.
 - macOS and iOS artifacts are arm64-only.
+- ONNX Runtime is pinned as a git submodule at `v1.21.1` and the CI workflow builds from the submodule.
 - For AMD GPUs, ONNX Runtime uses the MIGraphX EP (legacy ROCm EP was removed). The ROCm bundle assumes
   a MIGraphX-enabled build.

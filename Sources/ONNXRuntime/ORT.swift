@@ -288,6 +288,26 @@ public final class ORTSession {
         return results
     }
 
+    public func inputCount() throws -> Int {
+        var count: Int = 0
+        try ORTAPI.check(ORTAPI.api.pointee.SessionGetInputCount(handle, &count))
+        return count
+    }
+
+    public func outputCount() throws -> Int {
+        var count: Int = 0
+        try ORTAPI.check(ORTAPI.api.pointee.SessionGetOutputCount(handle, &count))
+        return count
+    }
+
+    public func inputName(at index: Int) throws -> String {
+        try name(at: index, nameFn: ORTAPI.api.pointee.SessionGetInputName)
+    }
+
+    public func outputName(at index: Int) throws -> String {
+        try name(at: index, nameFn: ORTAPI.api.pointee.SessionGetOutputName)
+    }
+
     public func run(inputs: [String: ORTValue], outputNames: [String]? = nil) throws -> [String: ORTValue] {
         let inputNames = inputs.keys.sorted()
         let inputValues: [UnsafePointer<OrtValue>] = try inputNames.map { name in
@@ -295,6 +315,51 @@ public final class ORTSession {
                 throw ORTError.invalidArgument("Missing input value for \(name)")
             }
             return UnsafePointer(value.handle)
+        }
+        return try runCore(inputNames: inputNames, inputValues: inputValues, outputNames: outputNames)
+    }
+
+    public func run(inputs: [(String, ORTValue)], outputNames: [String]? = nil) throws -> [String: ORTValue] {
+        let inputNames = inputs.map { $0.0 }
+        let inputValues = inputs.map { UnsafePointer($0.1.handle) }
+        return try runCore(inputNames: inputNames, inputValues: inputValues, outputNames: outputNames)
+    }
+
+    public func run(input: ORTValue, outputName: String? = nil) throws -> ORTValue {
+        let inputs = try inputNames()
+        guard inputs.count == 1 else {
+            throw ORTError.invalidArgument("Model has \(inputs.count) inputs; use run(inputs:) instead.")
+        }
+
+        let outputs: [String]
+        if let outputName {
+            outputs = [outputName]
+        } else {
+            let defaultOutputs = try outputNames()
+            guard defaultOutputs.count == 1 else {
+                throw ORTError.invalidArgument("Model has \(defaultOutputs.count) outputs; pass outputNames.")
+            }
+            outputs = defaultOutputs
+        }
+
+        let result = try runCore(
+            inputNames: inputs,
+            inputValues: [UnsafePointer(input.handle)],
+            outputNames: outputs
+        )
+        guard let output = result[outputs[0]] else {
+            throw ORTError.invalidArgument("Missing output for \(outputs[0])")
+        }
+        return output
+    }
+
+    private func runCore(
+        inputNames: [String],
+        inputValues: [UnsafePointer<OrtValue>],
+        outputNames: [String]? = nil
+    ) throws -> [String: ORTValue] {
+        guard inputNames.count == inputValues.count else {
+            throw ORTError.invalidArgument("Input names and values must be the same length.")
         }
 
         let outputs = outputNames ?? try self.outputNames()
@@ -337,7 +402,19 @@ public final class ORTSession {
         return results
     }
 
-    
+    private func name(
+        at index: Int,
+        nameFn: @convention(c) (UnsafePointer<OrtSession>?, Int, UnsafeMutablePointer<OrtAllocator>?, UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?) -> UnsafeMutablePointer<OrtStatus>?
+    ) throws -> String {
+        let allocator = try ORTAPI.defaultAllocator()
+        var value: UnsafeMutablePointer<CChar>?
+        try ORTAPI.check(nameFn(handle, index, allocator, &value))
+        guard let value else {
+            throw ORTError.invalidArgument("Failed to read name at index \(index)")
+        }
+        defer { try? ORTAPI.check(ORTAPI.api.pointee.AllocatorFree(allocator, value)) }
+        return String(cString: value)
+    }
 }
 
 public class ORTValue {
@@ -388,6 +465,20 @@ public class ORTValue {
         return shape.reduce(1, *)
     }
 
+    public func scalar<Element: ORTTensorElement>(_ type: Element.Type = Element.self) throws -> Element {
+        let values = try tensorData(type)
+        guard values.count == 1 else {
+            throw ORTError.invalidArgument("Tensor is not a scalar.")
+        }
+        return values[0]
+    }
+
+    public func isTensor() throws -> Bool {
+        var isTensor: Int32 = 0
+        try ORTAPI.check(ORTAPI.api.pointee.IsTensor(handle, &isTensor))
+        return isTensor != 0
+    }
+
     private func ensureTensor<Element: ORTTensorElement>(of _: Element.Type) throws {
         var isTensor: Int32 = 0
         try ORTAPI.check(ORTAPI.api.pointee.IsTensor(handle, &isTensor))
@@ -413,6 +504,14 @@ public class ORTValue {
 public final class ORTTensor<Element: ORTTensorElement>: ORTValue {
     public let shape: [Int64]
     private let storage: Data
+
+    public var elementCount: Int {
+        shape.reduce(1, *)
+    }
+
+    public convenience init(_ value: Element) throws {
+        try self.init([value], shape: [])
+    }
 
     public init(_ data: [Element], shape: [Int64]) throws {
         let expectedCount = shape.reduce(1, *)
