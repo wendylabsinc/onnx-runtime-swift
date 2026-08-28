@@ -240,7 +240,7 @@ jobs:
 
   build-linux-cuda-x86_64:
     name: Build Linux CUDA (x86_64)
-    runs-on: [self-hosted, linux, cuda, x86_64]
+    runs-on: [self-hosted, linux, wendy-linux, cuda, x86_64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -281,7 +281,7 @@ jobs:
 
   build-linux-cuda-aarch64:
     name: Build Linux CUDA (aarch64)
-    runs-on: [self-hosted, linux, cuda, arm64]
+    runs-on: [self-hosted, linux, wendy-linux, cuda, arm64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -322,7 +322,7 @@ jobs:
 
   build-linux-rocm-x86_64:
     name: Build Linux ROCm/MIGraphX (x86_64)
-    runs-on: [self-hosted, linux, rocm, x86_64]
+    runs-on: [self-hosted, linux, wendy-linux, rocm, x86_64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -364,7 +364,7 @@ jobs:
 
   build-linux-rocm-aarch64:
     name: Build Linux ROCm/MIGraphX (aarch64)
-    runs-on: [self-hosted, linux, rocm, arm64]
+    runs-on: [self-hosted, linux, wendy-linux, rocm, arm64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
